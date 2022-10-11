@@ -3,8 +3,6 @@ from activationLayer import ActivationLayer
 from FClayer import FClayer
 import pandas as pd
 import numpy as np
-import io
-from sklearn.model_selection import train_test_split
 
 # RelU
 def relu(x):
@@ -17,7 +15,15 @@ def relu_prime(x):
 
 # sigmoid function
 def sigmoid(x):
-  return 1.0/(1 + np.exp(-x))
+  if(x > -200).all():
+    if (x < 200).all():
+      return 1.0/(1 + np.exp(-x))
+  if (x >-114 ) .any():
+     if(x < 114).any():
+        
+  if(x >= 114).any(): return 1
+  if(x <= 114).any(): return 0
+  
 def sigmoid_prime(x):
   temp = (np.exp(-x))/((1 + np.exp(-x))**2)
   #print("Temp: ",temp)
@@ -30,6 +36,30 @@ def loss(y_actual, y_pre):
 def loss_prime(y_actual, y_pre):
   return y_pre - y_actual
 
+# x_train = np.array([[[0,0]],[[0,1]],[[1,0]],[[1,1]]])
+# y_train = np.array([[[0]],[[1]],[[1]],[[0]]])
+
+# net = Network()
+# net.add(FClayer((1,2),(1,3)))
+# net.add(ActivationLayer((1,3),(1,3),relu,relu_prime))
+# net.add(FClayer((1,3),(1,1)))
+# net.add(ActivationLayer((1,1),(1,1),relu,relu_prime))
+# net.setup_loss(loss,loss_prime)
+# net.fix(x_train,y_train,learning_rate=0.01,epochs=10)
+
+# net = Network()
+# net.add(FClayer((1,2),(1,3)))
+# net.add(ActivationLayer((1,3),(1,3),sigmoid,sigmoid_prime))
+# net.add(FClayer((1,3),(1,1)))
+# net.add(ActivationLayer((1,1),(1,1),sigmoid,sigmoid_prime))
+# net.setup_loss(loss,loss_prime)
+# net.fix(x_train,y_train,learning_rate=0.01,epochs=100000)
+
+# out = net.predict([[0,0]])
+# print(out)
+
+import io
+from sklearn.model_selection import train_test_split
 
 # Working with data base from UCI
 dataFrame = pd.read_excel("Real estate valuation data set.xlsx")
@@ -71,7 +101,7 @@ m = len(Train_Data)
 
 
 
-print(m,n)    # 336 6
+print(m,n)# 336 6
 data_TD = []  # Training Data
 data_TR = []  # Training Result
 
@@ -103,9 +133,18 @@ net.add(ActivationLayer((1,1),(1,1),sigmoid,sigmoid_prime))
 net.setup_loss(loss,loss_prime)
 net.fix(np.array(data_TD),np.array(data_TR),learning_rate=0.01,epochs=1)
 
+# x_train = np.array([[[0.1,0.1,0,1,2,3]],[[400,500,0,1,2,3]],[[1,0,1,1,1,1]],[[1,1,1,3,4,5]],[[1,2,3,5,6,7]]])
+y_train = np.array([[[0]],[[1]],[[1]],[[0]],[[4]]])
 
+
+# net = Network()
+# net.add(FClayer((1,len(Train_Data[0])),(1,3)))
+# net.add(ActivationLayer((1,3),(1,3),sigmoid,sigmoid_prime))
+# net.add(FClayer((1,3),(1,1)))
+# net.add(ActivationLayer((1,1),(1,1),sigmoid,sigmoid_prime))
+# net.setup_loss(loss,loss_prime)
+# net.fix(x_train,y_train,learning_rate=0.01,epochs=10)
 
 out = net.predict([[0,0,1,1,1,1]])
 print(out)
 
-print(len(np.array(data_TD)), len(np.array(data_TR)))
