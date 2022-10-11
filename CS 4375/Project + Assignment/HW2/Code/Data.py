@@ -1,13 +1,38 @@
+from Network import Network
+from activationLayer import ActivationLayer
+from FClayer import FClayer
 import pandas as pd
 import numpy as np
-
-import math
-import matplotlib.pyplot as plt #pip install openpyxl
 import io
 from sklearn.model_selection import train_test_split
 
+# RelU
+def relu(x):
+  return np.maximum(0,x)
+def relu_prime(x):
+  x[x<0]=0
+  x[x>0]=1
+  #print("Temp: ",x)
+  return x
+
+# sigmoid function
+def sigmoid(x):
+  return 1.0/(1 + np.exp(-x))
+def sigmoid_prime(x):
+  temp = (np.exp(-x))/((1 + np.exp(-x))**2)
+  #print("Temp: ",temp)
+  return temp
+# tanh function
+
+# Cost function C = 0.5(Y^ - Y)^2
+def loss(y_actual, y_pre):
+  return 0.5*(y_pre - y_actual)**2
+def loss_prime(y_actual, y_pre):
+  return y_pre - y_actual
+
+
 # Working with data base from UCI
-dataFrame = pd.read_excel("https://archive.ics.uci.edu/ml/machine-learning-databases/00477/Real%20estate%20valuation%20data%20set.xlsx")
+dataFrame = pd.read_excel("Real estate valuation data set.xlsx")
 dataFrame.to_csv ("Test.csv")
 dataFrame.columns 
 dataFrame.columns = ['No', 'X1_transaction_date', 'X2_house_age','X3_distance_to_the_nearest_MRT_station','X4_number_of_convenience_stores', 'X5_latitude', 'X6_longitude','Y_house_price_of_unit_area']
@@ -41,133 +66,46 @@ Train_Data = pd.DataFrame(X_train).to_numpy()
 Test_Result = pd.DataFrame(Y_test).to_numpy()
 Test_Data = pd.DataFrame(X_test).to_numpy()
 
+n = len(Train_Data[0])
+m = len(Train_Data)
 
-# Predict function for a new_radio. Find Y^
-def predict(new_Data, weight_list, bias):
-    predict = bias
-    for i in range(len(new_Data)):
-      predict += new_Data[i]*weight_list[i] 
-    return predict
 
-# Cost function. include initial X,Y, current weight,bias. MSE
-def cost_function(trainData,trainResult,weight_list,bias):
-  n = len(trainData[0])
-  m = len(trainData)
-  sum_error = 0
-  pre = 0.0
 
-  for i in range(m):
-    pre = bias
-    for j in range(n):
-      pre = pre + weight_list[j]*trainData[i][j]
-    sum_error += (trainResult[i] - (pre))**2
-  return sum_error/m
+print(m,n)    # 336 6
+data_TD = []  # Training Data
+data_TR = []  # Training Result
 
-# RSS
-def RSS(trainData,trainResult,weight_list,bias):
-  m = len(trainData)
-  return cost_function(trainData,trainResult,weight_list,bias)*m
-
-# TSS
-def TSS(trainData,trainResult,weight_list,bias):
-  n = len(trainData[0])
-  m = len(trainData)
-  sum_error = 0
-  pre = 0.0
-
-  pre = np.median(np.array(trainData)) 
-  for i in range(m):
-    sum_error += (trainResult[i] - (pre))**2
-  
-  return sum_error/m
-#R^2
-def R2(trainData,trainResult,weight_list,bias):
-  temp1 = RSS(trainData,trainResult,weight_list,bias)
-  temp2 = TSS(trainData,trainResult,weight_list,bias)
-
-  return 1 - (temp1/temp2)
-
-#Create new weight and new bias use Gradient Descent
-# Use learning rate
-def update(trainData,testData,weight_list,bias,learning_rate):
-  n = len(trainData[0])
-  m = len(trainData)
-  pre = 0
-  weight_temp = []
-  bias_temp = 0.0
-  
+for i in range(m):
+  temp = []
+  temp1 = []
   for j in range(n):
-    weight_temp.append(0.0)
- 
-  for i in range(m):
-    pre = bias
-    for j in range(n):
-        pre += weight_list[j]*trainData[i][j]
-    for j in range(n):
-          weight_temp[j] += -1*trainData[i][j]*(testData[i]-pre)
-     
-    bias_temp += -1*(testData[i]-pre) 
+    temp.append(Train_Data[i][j])
+  temp1.append(temp)
+  data_TD.append(temp1)
+  
+# data_TD = np.array(data_TD)
 
-  for j in range(n):
-    weight_list[j] = weight_list[j]- ((weight_temp[j]*2)/m)*learning_rate
-  e =  ((bias_temp*2)/m)*learning_rate
-  bias =  bias - e 
+for i in range(m):
+  temp = []
+  temp1 = []
+  temp.append(Train_Result[i][0])
+  temp1.append(temp)
+  data_TR.append(temp1)
 
-  return weight_list,float(bias)
+# for i in range(m):
+#   print(data_TR[i], "\n")
 
-# Training function
-def train(trainData,testData,weight_list,bias,learning_rate,iter):
-  cost_his = []
-  r2_his = []
-  r2 = []
-  for i in range(iter):
-      weight_list,bias = update(trainData,testData,weight_list,bias,learning_rate) # update weight , bias
-      
-      cost = cost_function(trainData,testData,weight_list,bias) # count MSE
-      r2 = R2(trainData,testData,weight_list,bias) # R^2
-      cost_his.append(cost)
-      r2_his.append(r2)
-  return bias,weight_list,cost_his,r2_his
+net = Network()
+net.add(FClayer((1,len(Train_Data[0])),(1,3)))
+net.add(ActivationLayer((1,3),(1,3),sigmoid,sigmoid_prime))
+net.add(FClayer((1,3),(1,1)))
+net.add(ActivationLayer((1,1),(1,1),sigmoid,sigmoid_prime))
+net.setup_loss(loss,loss_prime)
+net.fix(np.array(data_TD),np.array(data_TR),learning_rate=0.01,epochs=1)
 
-# Set a number for_loop to repeat the training
-n = 400
 
-# Create initial weigh list
-weight_list = []
-for j in range(len(Train_Data[0])):
-    weight_list.append(0.1)
 
-# Testting data
-bias,weight_list,cost,r_2 = train(Train_Data,Train_Result,weight_list,0.1,0.00000001,n)
+out = net.predict([[0,0,1,1,1,1]])
+print(out)
 
-# Display result 
-
-print("Y_interception: ",bias)
-print("Weight list: \n", weight_list)
-print("MSE list \n",cost)
-print("R power 2 list \n",r_2)
-
-print("\nDisplay a diagram about MSE (cost)\n")
-rep_num = [i for i in range(n)]
-plt.plot(rep_num,cost)
-plt.show()
-print("\nDisplay a diagram about R**2\n")
-rep_num = [i for i in range(n)]
-plt.plot(rep_num,r_2)
-plt.show()
-
-# Testing with data
-Y_predict = [] 
-length_of_Test_List = len(Test_Data)
-
-for i in range(length_of_Test_List):
-  Y_predict.append(predict(Test_Data[i],weight_list,bias))
-
-# Other Diagram
-
-print("\nDisplay a diagram about from your code predict with black line, and real value with blue line\n")
-rep_num = [i for i in range(length_of_Test_List)]
-plt.plot(rep_num,np.array(Y_predict),label = "line Predict", color = 'black')
-plt.plot(rep_num,np.array(Test_Result),label = "line Real Value", color = 'blue')
-plt.show()
-#
+print(len(np.array(data_TD)), len(np.array(data_TR)))
