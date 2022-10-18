@@ -28,7 +28,8 @@ class Network:
     return result
 
   # Upadate weights and bias
-  def fix(self,x_train,y_train,learning_rate,epochs):
+  def fix_update(self,x_train,y_train,learning_rate,epochs):
+    err_list = []
     # Check data set
     n = len(x_train)
     for i in range(epochs):
@@ -38,7 +39,7 @@ class Network:
         output = x_train[j]
         for layer in self.layers:
           output = layer.forward_propagation(output)
-        # Error of each layer
+        # Error of each layer MSE
         err += self.loss(y_train[j],output)
         error = self.loss_prime(y_train[j],output)
 
@@ -46,4 +47,6 @@ class Network:
         for layer in reversed(self.layers):
           error = layer.backward_propagation(error,learning_rate)
       err = err/n
+      err_list.append(err)
       # print ('epoch : %d/%d err = %f'%(i,epochs,err))
+    return err_list
