@@ -1,0 +1,1 @@
+python main.py ex1.var ex1.con none  
