@@ -1,115 +1,240 @@
-import numpy as np
-from sklearn.datasets import make_blobs
+import random as rd
+import re
+import math
+import string
 
 
-class KMeans():
-  def __init__(self, k, max_iteration=10):
-      self.k = k
-      self.max_iteration = max_iteration
-      self.all_centroids = []
-      self.all_labels = []
+def pre_process_tweets(url):
 
-  # Hàm thuật toán k-Means lấy đầu vào là một bộ dữ liệu và số lượng cluster k. Trẻ về tâm của k cụm
-  def fit(self, dataSet):
-      # Khởi tạo ngẫu nhiên k centroids
-      numFeatures = dataSet.shape[1]
-      centroids = self.get_random_centroids(numFeatures, self.k)
-      self.all_centroids.append(centroids)
-      self.all_labels.append(None)
+    f = open(url, "r", encoding="utf8")
+    tweets = list(f)
+    list_of_tweets = []
 
-      # Khởi tạo các biến iterations, oldCentroids
-      iterations = 0
-      oldCentroids = None
-      
-      # Vòng lặp cập nhật centroids trong thuật toán k-Means
-      while not self.should_stop(oldCentroids, centroids, iterations):
-          # Lưu lại centroids cũ cho quá trình kiểm tra hội tụ
-          oldCentroids = centroids
-          iterations += 1
-          
-          # Gán nhãn cho mỗi diểm dữ liệu dựa vào centroids
-          labels = self.get_labels(dataSet, centroids)
-          self.all_labels.append(labels)
+    for i in range(len(tweets)):
 
-          # Cập nhật centroids dựa vào nhãn dữ liệu
-          # print('0ld centroids: ', centroids)
-          centroids = self.get_centroids(dataSet, labels, self.k)
-          # print('new centroids: ', centroids)
-          self.all_centroids.append(centroids)
-  
-      return centroids
+        # remove \n from the end after every sentence
+        tweets[i] = tweets[i].strip('\n')
 
-  # Hàm khởi tạo centroids ngẫu nhiên
-  def get_random_centroids(self, numFeatures, k):
-    return np.random.rand(k, numFeatures)
-   
+        # Remove the tweet id and timestamp
+        tweets[i] = tweets[i][50:]
 
-  # Hàm này trả về nhãn cho mỗi điểm dữ liệu trong datasets
-  def get_labels(self, dataSet, centroids):
-      # Với mỗi quan sát trong dataset, lựa chọn centroids gần nhất để gán label cho dữ liệu.
-      labels = []
-      for x in dataSet:
-        # Tính khoảng cách tới các centroids và cập nhận nhãn
-        distances = np.sum((x-centroids)**2, axis=1)
-        label = np.argmin(distances)
-        labels.append(label)
-      return labels
-      
-  # Hàm này trả về True hoặc False nếu k-Means hoàn thành. Điều kiện k-Means hoàn thành là 
-  # thuật toán vượt ngưỡng số lượng vòng lặp hoặc centroids ngừng thay đổi
-  def should_stop(self, oldCentroids, centroids, iterations):
-      if iterations > self.max_iteration: 
-        return True
-      return np.all(oldCentroids == centroids)
+        # Remove any word that starts with the symbol @
+        tweets[i] = " ".join(filter(lambda x: x[0] != '@', tweets[i].split()))
 
-  # Trả về toan độ mới cho k centroids của mỗi chiều.
-  def get_centroids(self, dataSet, labels, k):
-      centroids = []
-      for j in np.arange(k):
-        # Lấy index cho mỗi centroids
-        idx_j = np.where(np.array(labels) == j)[0]
-        centroid_j = dataSet[idx_j, :].mean(axis=0)
-        centroids.append(centroid_j)
-      return np.array(centroids)
+        # Remove any URL
+        tweets[i] = re.sub(r"http\S+", "", tweets[i])
+        tweets[i] = re.sub(r"www\S+", "", tweets[i])
 
-dataset, _ = make_blobs(n_samples=250, cluster_std=4.0, random_state=123)
+        # remove colons from the end of the sentences (if any) after removing url
+        tweets[i] = tweets[i].strip()
+        tweet_len = len(tweets[i])
+        if tweet_len > 0:
+            if tweets[i][len(tweets[i]) - 1] == ':':
+                tweets[i] = tweets[i][:len(tweets[i]) - 1]
 
-kmean = KMeans(k=2, max_iteration=8)
-centroids = kmean.fit(dataset)
+        # Remove any hash-tags symbols
+        tweets[i] = tweets[i].replace('#', '')
 
-import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
+        # Convert every word to lowercase
+        tweets[i] = tweets[i].lower()
 
-gs = GridSpec(nrows=3, ncols=3)
-plt.figure(figsize = (20, 20))
-plt.subplots_adjust(wspace=0.2,hspace=0.4)
-colors = ['green', 'blue','yellow']
-labels = ['cluster 1', 'cluster 2','cluster 3']
+        # remove punctuations
+        tweets[i] = tweets[i].translate(str.maketrans('', '', string.punctuation))
 
-for i in np.arange(len(kmean.all_centroids)):
-  ax = plt.subplot(gs[i])
-  if i == 0:
-    centroids_i = kmean.all_centroids[i]
-    plt.scatter(dataset[:, 0], dataset[:, 1], s=50, alpha=0.5, color='red')
-    for j in np.arange(kmean.k):
-      plt.scatter(centroids_i[j, 0], centroids_i[j, 1], marker='x', s=100, color='black')
-    plt.title('All points in original dataset')
-    # showing legend
-    plt.legend()
-    # function to show the plot
-    plt.show()
-  else:
-    # Lấy centroids và labels tại bước thứ i
-    centroids_i = kmean.all_centroids[i]
-    labels_i = kmean.all_labels[i]
-    # Visualize các điểm cho từng cụm
-    for j in np.arange(kmean.k):
-      idx_j = np.where(np.array(labels_i) == j)[0]
-      plt.scatter(dataset[idx_j, 0], dataset[idx_j, 1], color=colors[j], label=labels[j], s=50, alpha=0.3, lw = 0)
-    #   plt.scatter(centroids_i[j, 0], centroids_i[j, 1], marker='x', color=colors[j], s=100, label=labels[j])
-    plt.title(r'iteration {}'.format(i))
-    # showing legend
-    plt.legend()
-    # function to show the plot
-    plt.show()
-       
+        # trim extra spaces
+        tweets[i] = " ".join(tweets[i].split())
+
+        # convert each tweet from string type to as list<string> using " " as a delimiter
+        list_of_tweets.append(tweets[i].split(' '))
+
+    f.close()
+
+    return list_of_tweets
+
+
+def k_means(tweets, k=4, max_iterations=50):
+
+    centroids = []
+
+    # initialization, assign random tweets as centroids
+    count = 0
+    hash_map = dict()
+    while count < k:
+        random_tweet_idx = rd.randint(0, len(tweets) - 1)
+        if random_tweet_idx not in hash_map:
+            count += 1
+            hash_map[random_tweet_idx] = True
+            centroids.append(tweets[random_tweet_idx])
+
+    iter_count = 0
+    prev_centroids = []
+
+    # run the iterations until not converged or until the max iteration in not reached
+    while (is_converged(prev_centroids, centroids)) == False and (iter_count < max_iterations):
+
+        print("running iteration " + str(iter_count))
+
+        # assignment, assign tweets to the closest centroids
+        clusters = assign_cluster(tweets, centroids)
+
+        # to check if k-means converges, keep track of prev_centroids
+        prev_centroids = centroids
+
+        # update, update centroid based on clusters formed
+        centroids = update_centroids(clusters)
+        iter_count = iter_count + 1
+
+    if (iter_count == max_iterations):
+        print("max iterations reached, K means not converged")
+    else:
+        print("converged")
+
+    sse = compute_SSE(clusters)
+
+    return clusters, sse
+
+
+def is_converged(prev_centroid, new_centroids):
+
+    # false if lengths are not equal
+    if len(prev_centroid) != len(new_centroids):
+        return False
+
+    # iterate over each entry of clusters and check if they are same
+    for c in range(len(new_centroids)):
+        if " ".join(new_centroids[c]) != " ".join(prev_centroid[c]):
+            return False
+
+    return True
+
+
+def assign_cluster(tweets, centroids):
+
+    clusters = dict()
+
+    # for every tweet iterate each centroid and assign closest centroid to a it
+    for t in range(len(tweets)):
+        min_dis = math.inf
+        cluster_idx = -1;
+        for c in range(len(centroids)):
+            dis = getDistance(centroids[c], tweets[t])
+            # look for a closest centroid for a tweet
+
+            if centroids[c] == tweets[t]:
+                # print("tweet and centroid are equal with c: " + str(c) + ", t" + str(t))
+                cluster_idx = c
+                min_dis = 0
+                break
+
+            if dis < min_dis:
+                cluster_idx = c
+                min_dis = dis
+
+        # randomise the centroid assignment to a tweet if nothing is common
+        if min_dis == 1:
+            cluster_idx = rd.randint(0, len(centroids) - 1)
+
+        # assign the closest centroid to a tweet
+        clusters.setdefault(cluster_idx, []).append([tweets[t]])
+        # print("tweet t: " + str(t) + " is assigned to cluster c: " + str(cluster_idx))
+        # add the tweet distance from its closest centroid to compute sse in the end
+        last_tweet_idx = len(clusters.setdefault(cluster_idx, [])) - 1
+        clusters.setdefault(cluster_idx, [])[last_tweet_idx].append(min_dis)
+
+    return clusters
+
+
+def update_centroids(clusters):
+
+    centroids = []
+
+    # iterate each cluster and check for a tweet with closest distance sum with all other tweets in the same cluster
+    # select that tweet as the centroid for the cluster
+    for c in range(len(clusters)):
+        min_dis_sum = math.inf
+        centroid_idx = -1
+
+        # to avoid redundant calculations
+        min_dis_dp = []
+
+        for t1 in range(len(clusters[c])):
+            min_dis_dp.append([])
+            dis_sum = 0
+            # get distances sum for every of tweet t1 with every tweet t2 in a same cluster
+            for t2 in range(len(clusters[c])):
+                if t1 != t2:
+                    if t2 < t1:
+                        dis = min_dis_dp[t2][t1]
+                    else:
+                        dis = getDistance(clusters[c][t1][0], clusters[c][t2][0])
+
+                    min_dis_dp[t1].append(dis)
+                    dis_sum += dis
+                else:
+                    min_dis_dp[t1].append(0)
+
+            # select the tweet with the minimum distances sum as the centroid for the cluster
+            if dis_sum < min_dis_sum:
+                min_dis_sum = dis_sum
+                centroid_idx = t1
+
+        # append the selected tweet to the centroid list
+        centroids.append(clusters[c][centroid_idx][0])
+
+    return centroids
+
+
+def getDistance(tweet1, tweet2):
+
+    # get the intersection
+    intersection = set(tweet1).intersection(tweet2)
+
+    # get the union
+    union = set().union(tweet1, tweet2)
+
+    # return the jaccard distance
+    return 1 - (len(intersection) / len(union))
+
+
+def compute_SSE(clusters):
+
+    sse = 0
+    # iterate every cluster 'c', compute SSE as the sum of square of distances of the tweet from it's centroid
+    for c in range(len(clusters)):
+        for t in range(len(clusters[c])):
+            sse = sse + (clusters[c][t][1] * clusters[c][t][1])
+
+    return sse
+
+
+if __name__ == '__main__':
+
+    data_url = 'Health_Tweets/bbchealth.txt'
+
+    tweets = pre_process_tweets(data_url)
+
+    # default number of experiments to be performed
+    experiments = 5
+
+    # default value of K for K-means
+    k = 3
+
+    # for every experiment 'e', run K-means
+    for e in range(experiments):
+
+        print("------ Running K means for experiment no. " + str((e + 1)) + " for k = " + str(k))
+
+        clusters, sse = k_means(tweets, k)
+
+        # for every cluster 'c', print size of each cluster
+        for c in range(len(clusters)):
+            print(str(c+1) + ": ", str(len(clusters[c])) + " tweets")
+            # # to print tweets in a cluster
+            # for t in range(len(clusters[c])):
+            #     print("t" + str(t) + ", " + (" ".join(clusters[c][t][0])))
+
+        print("--> SSE : " + str(sse))
+        print('\n')
+
+        # increment k after every experiment
+        k = k + 1
