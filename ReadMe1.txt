@@ -2,9 +2,9 @@ import random as rd
 import re
 import math
 import string
+import sys
 
-
-def pre_process_tweets(url):
+def process_data(url):
 
     f = open(url, "r", encoding="utf8")
     tweets = list(f)
@@ -184,57 +184,38 @@ def update_centroids(clusters):
     return centroids
 
 
-def getDistance(tweet1, tweet2):
-
-    # get the intersection
-    intersection = set(tweet1).intersection(tweet2)
-
-    # get the union
-    union = set().union(tweet1, tweet2)
-
-    # return the jaccard distance
-    return 1 - (len(intersection) / len(union))
-
-
 def compute_SSE(clusters):
 
     sse = 0
     # iterate every cluster 'c', compute SSE as the sum of square of distances of the tweet from it's centroid
     for c in range(len(clusters)):
         for t in range(len(clusters[c])):
-            sse = sse + (clusters[c][t][1] * clusters[c][t][1])
-
+            sse = sse + pow(clusters[c][t][1],2)
     return sse
 
+def getDistance(tweet1, tweet2):
+
+    # return the jaccard distance
+    return 1 - (len(set(tweet1).intersection(tweet2)) / len(set().union(tweet1, tweet2)))
 
 if __name__ == '__main__':
 
-    data_url = 'Health_Tweets/bbchealth.txt'
 
-    tweets = pre_process_tweets(data_url)
+    tweets = process_data(str(sys.argv[1]))
 
-    # default number of experiments to be performed
-    experiments = 5
 
     # default value of K for K-means
-    k = 3
+    k = int(sys.argv[2])
 
     # for every experiment 'e', run K-means
-    for e in range(experiments):
 
-        print("------ Running K means for experiment no. " + str((e + 1)) + " for k = " + str(k))
 
-        clusters, sse = k_means(tweets, k)
+    print("------ Running K means " +  " for k = " + str(k))
 
-        # for every cluster 'c', print size of each cluster
-        for c in range(len(clusters)):
-            print(str(c+1) + ": ", str(len(clusters[c])) + " tweets")
-            # # to print tweets in a cluster
-            # for t in range(len(clusters[c])):
-            #     print("t" + str(t) + ", " + (" ".join(clusters[c][t][0])))
+    clusters, sse = k_means(tweets, k)
 
-        print("--> SSE : " + str(sse))
-        print('\n')
-
-        # increment k after every experiment
-        k = k + 1
+    # for every cluster 'c', print size of each cluster
+    for c in range(len(clusters)):
+        print(str(c+1) + ": ", str(len(clusters[c])) + " tweets")
+           
+    print("--> SSE : " + str(sse)+ '\n')
