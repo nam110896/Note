@@ -17,7 +17,7 @@ class K_cluster:
 
         # initialization, assign random tweets as centroids
         count = 0
-        hash_map = dict()
+        hash_map = {}
         while count < k:
             random_tweet_idx = rd.randint(0, len(self.tweets) - 1)
             if random_tweet_idx not in hash_map:
@@ -50,31 +50,18 @@ class K_cluster:
 
         sse = SSE_function(clusters)
 
-        return clusters, sse
+        return clusters, sse, centroids
 
-
-def converge(prev_centroid, new_centroids):
-
-    # false if lengths are not equal
-    if len(prev_centroid) != len(new_centroids):
-        return False
-
-        # iterate over each entry of clusters and check if they are same
-    for c in range(len(new_centroids)):
-        if " ".join(new_centroids[c]) != " ".join(prev_centroid[c]):
-            return False
-
-    return True
 
 
 def new_cluster(tweets, centroids):
 
-    clusters = dict()
+    clusters = {}
 
         # for every tweet iterate each centroid and assign closest centroid to a it
     for t in range(len(tweets)):
         min_dis = math.inf
-        cluster_idx = -1;
+        cluster_idx = -1
         for c in range(len(centroids)):
             dis = jaccard_Distance(centroids[c], tweets[t])
                 # look for a closest centroid for a tweet
@@ -141,6 +128,18 @@ def new_centroids(clusters):
 
     return centroids
 
+def converge(prev_centroid, new_centroids):
+
+    # false if lengths are not equal
+    if len(prev_centroid) != len(new_centroids):
+        return False
+
+        # iterate over each entry of clusters and check if they are same
+    for c in range(len(new_centroids)):
+        if " ".join(new_centroids[c]) != " ".join(prev_centroid[c]):
+            return False
+
+    return True
 
 def SSE_function(clusters):
 
@@ -204,10 +203,11 @@ if __name__ == '__main__':
     # for every experiment 'e', run K-means
     print("------ Running K means " +  " for k = " + str(k))
 
-    clusters, sse = kc.k_means()
+    clusters, sse ,centroids= kc.k_means()
 
     # for every cluster 'c', print size of each cluster
+
     for c in range(len(clusters)):
-        print(str(c+1) + ": ", str(len(clusters[c])) + " tweets")
+        print(str(c+1) + ": " + str(centroids[c])+ " " +str(len(clusters[c])) + " tweets")
            
     print("--> SSE : " + str(sse)+ '\n')
