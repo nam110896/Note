@@ -29,9 +29,7 @@ class K_cluster:
         prev_centroids = []
 
         # run the iterations until not converged or until the max iteration in not reached
-        while (converge(prev_centroids, centroids)) == False and (iter_count < self.max_iterations):
-
-            print("running iteration " + str(iter_count))
+        while (isConverge(prev_centroids, centroids)) == False and (iter_count < self.max_iterations):
 
             # assignment, assign tweets to the closest centroids
             clusters = new_cluster(self.tweets, centroids)
@@ -46,7 +44,7 @@ class K_cluster:
         if (iter_count == self.max_iterations):
             print("max iterations reached, K means not converged")
         else:
-            print("converged")
+            print("After ", str(iter_count) +" times running iteration" +", and the resullt is:")
 
         sse = SSE_function(clusters)
 
@@ -128,7 +126,7 @@ def new_centroids(clusters):
 
     return centroids
 
-def converge(prev_centroid, new_centroids):
+def isConverge(prev_centroid, new_centroids):
 
     # false if lengths are not equal
     if len(prev_centroid) != len(new_centroids):
@@ -201,13 +199,13 @@ if __name__ == '__main__':
     k = int(sys.argv[2])
     kc = K_cluster(tweets_data,k,100)
     # for every experiment 'e', run K-means
-    print("------ Running K means " +  " for k = " + str(k))
+    print("Running K _ Cluster Algorithm " +  " with k = " + str(k))
 
     clusters, sse ,centroids= kc.k_means()
 
     # for every cluster 'c', print size of each cluster
 
     for c in range(len(clusters)):
-        print(str(c+1) + ": " + str(centroids[c])+ " " +str(len(clusters[c])) + " tweets")
+        print(str(c+1) + ": The centroid is " + str(centroids[c])+ " include " + str(len(clusters[c])) + " tweets")
            
     print("--> SSE : " + str(sse)+ '\n')
