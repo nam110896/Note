@@ -29,7 +29,7 @@ class K_cluster:
         prev_centroids = []
 
         # run the iterations until not converged or until the max iteration in not reached
-        while (isConverge(prev_centroids, centroids)) == False and (iter_count < self.max_iterations):
+        while (isConverge(prev_centroids, centroids)) != True and (iter_count < self.max_iterations):
 
             # assignment, assign tweets to the closest centroids
             clusters = new_cluster(self.tweets, centroids)
@@ -131,13 +131,14 @@ def isConverge(prev_centroid, new_centroids):
     # false if lengths are not equal
     if len(prev_centroid) != len(new_centroids):
         return False
-
+    else:
+        a = " "
+        b = " "
         # iterate over each entry of clusters and check if they are same
-    for c in range(len(new_centroids)):
-        if " ".join(new_centroids[c]) != " ".join(prev_centroid[c]):
-            return False
-
-    return True
+        for c in range(len(new_centroids)):
+            if str(a.join(new_centroids[c])) != str(b.join(prev_centroid[c])):
+                return False
+        return True
 
 def SSE_function(clusters):
 
