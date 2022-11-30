@@ -10,55 +10,57 @@ class K_cluster:
         self.tweets = tweets
         self.k = k
         self.max_iterations=max_iterations
+        self.centroids = []
+        self.clusters = {}
+        self.sse = 0
+
         
     def k_means(self):
 
-        centroids = []
-
         # initialization, assign random tweets as centroids
         count = 0
-        hash_map = {}
+        list = {}
         while count < k:
             random_tweet_idx = rd.randint(0, len(self.tweets) - 1)
-            if random_tweet_idx not in hash_map:
+            if random_tweet_idx not in list:
                 count += 1
-                hash_map[random_tweet_idx] = True
-                centroids.append(self.tweets[random_tweet_idx])
+                list[random_tweet_idx] = True
+                self.centroids.append(self.tweets[random_tweet_idx])
 
         iter_count = 0
         prev_centroids = []
 
         # run the iterations until not converged or until the max iteration in not reached
-        while (isConverge(prev_centroids, centroids)) != True and (iter_count < self.max_iterations):
+        while (isConverge(prev_centroids, self.centroids)) != True and (iter_count < self.max_iterations):
 
             # assignment, assign tweets to the closest centroids
-            clusters = new_cluster(self.tweets, centroids)
+            self.clusters = new_cluster(self.tweets, self.centroids)
 
             # to check if k-means converges, keep track of prev_centroids
-            prev_centroids = centroids
+            prev_centroids = self.centroids
 
             # update, update centroid based on clusters formed
-            centroids = new_centroids(clusters)
-            iter_count = iter_count + 1
+            self.centroids = new_centroids(self.clusters)
+            iter_count +=   1
 
         if (iter_count == self.max_iterations):
             print("max iterations reached, K means not converged")
         else:
             print("After ", str(iter_count) +" times running iteration" +", and the resullt is:")
 
-        sse = SSE_function(clusters)
+        self.sse = SSE_function(self.clusters)
 
-        return clusters, sse, centroids
+        return self.clusters, self.sse, self.centroids
 
 
 
 def new_cluster(tweets, centroids):
 
-    clusters = {}
+    clusters_list = {}
 
         # for every tweet iterate each centroid and assign closest centroid to a it
     for t in range(len(tweets)):
-        min_dis = math.inf
+        get_min = math.inf
         cluster_idx = -1
         for c in range(len(centroids)):
             dis = jaccard_Distance(centroids[c], tweets[t])
@@ -66,25 +68,25 @@ def new_cluster(tweets, centroids):
             if centroids[c] == tweets[t]:
                 # print("tweet and centroid are equal with c: " + str(c) + ", t" + str(t))
                 cluster_idx = c
-                min_dis = 0
+                get_min = 0
                 break
 
-            if dis < min_dis:
+            if dis < get_min:
                 cluster_idx = c
-                min_dis = dis
+                get_min = dis
 
             # randomise the centroid assignment to a tweet if nothing is common
-        if min_dis == 1:
+        if get_min == 1:
             cluster_idx = rd.randint(0, len(centroids) - 1)
 
             # assign the closest centroid to a tweet
-        clusters.setdefault(cluster_idx, []).append([tweets[t]])
+        clusters_list.setdefault(cluster_idx, []).append([tweets[t]])
             # print("tweet t: " + str(t) + " is assigned to cluster c: " + str(cluster_idx))
             # add the tweet distance from its closest centroid to compute sse in the end
-        last_tweet_idx = len(clusters.setdefault(cluster_idx, [])) - 1
-        clusters.setdefault(cluster_idx, [])[last_tweet_idx].append(min_dis)
+        last_tweet_idx = len(clusters_list.setdefault(cluster_idx, [])) - 1
+        clusters_list.setdefault(cluster_idx, [])[last_tweet_idx].append(get_min)
 
-    return clusters
+    return clusters_list
 
 
 def new_centroids(clusters):
@@ -94,31 +96,31 @@ def new_centroids(clusters):
         # iterate each cluster and check for a tweet with closest distance sum with all other tweets in the same cluster
         # select that tweet as the centroid for the cluster
     for c in range(len(clusters)):
-        min_dis_sum = math.inf
+        get_min_sum = math.inf
         centroid_idx = -1
 
         # to avoid redundant calculations
-        min_dis_dp = []
+        get_min_dp = []
 
         for t1 in range(len(clusters[c])):
-            min_dis_dp.append([])
+            get_min_dp.append([])
             dis_sum = 0
             # get distances sum for every of tweet t1 with every tweet t2 in a same cluster
             for t2 in range(len(clusters[c])):
                 if t1 != t2:
                     if t2 < t1:
-                        dis = min_dis_dp[t2][t1]
+                        dis = get_min_dp[t2][t1]
                     else:
                         dis = jaccard_Distance(clusters[c][t1][0], clusters[c][t2][0])
 
-                    min_dis_dp[t1].append(dis)
+                    get_min_dp[t1].append(dis)
                     dis_sum += dis
                 else:
-                    min_dis_dp[t1].append(0)
+                    get_min_dp[t1].append(0)
 
             # select the tweet with the minimum distances sum as the centroid for the cluster
-            if dis_sum < min_dis_sum:
-                min_dis_sum = dis_sum
+            if dis_sum < get_min_sum:
+                get_min_sum = dis_sum
                 centroid_idx = t1
 
         # append the selected tweet to the centroid list
@@ -127,18 +129,17 @@ def new_centroids(clusters):
     return centroids
 
 def isConverge(prev_centroid, new_centroids):
-
-    # false if lengths are not equal
-    if len(prev_centroid) != len(new_centroids):
-        return False
-    else:
+    
+    if len(prev_centroid) == len(new_centroids):
         a = " "
         b = " "
         # iterate over each entry of clusters and check if they are same
         for c in range(len(new_centroids)):
-            if str(a.join(new_centroids[c])) != str(b.join(prev_centroid[c])):
+            if str(a.join(new_centroids[c]))!=( str(b.join(prev_centroid[c]))):
                 return False
         return True
+    else:
+        return False
 
 def SSE_function(clusters):
 
@@ -154,9 +155,13 @@ def jaccard_Distance(tweet1, tweet2):
     # return the jaccard distance
     return 1 - (len(set(tweet1).intersection(tweet2)) / len(set().union(tweet1, tweet2)))
 
-if __name__ == '__main__':
-
-    f = open(str(sys.argv[1]), "r")
+def run(temp,k):
+    
+    if(temp == "Health-Tweets/cnnhealth.txt"):
+        f = open(temp, "r",encoding="utf8")
+    else:
+        f = open(temp, "r")
+        
     tweets = list(f)
     tweets_data = []
 
@@ -172,7 +177,7 @@ if __name__ == '__main__':
         tweets[i] = " ".join(filter(lambda x: x[0] != '@', tweets[i].split()))
 
         # Remove any URL
-        
+            
         tweets[i] = re.sub(r"www\S+", "", tweets[i])
         tweets[i] = re.sub(r"http\S+", "", tweets[i])
 
@@ -197,7 +202,7 @@ if __name__ == '__main__':
     f.close()
 
     # default value of K for K-means
-    k = int(sys.argv[2])
+    
     kc = K_cluster(tweets_data,k,100)
     # for every experiment 'e', run K-means
     print("Running K _ Cluster Algorithm " +  " with k = " + str(k))
@@ -208,5 +213,55 @@ if __name__ == '__main__':
 
     for c in range(len(clusters)):
         print(str(c+1) + ": The centroid is " + str(centroids[c])+ " include " + str(len(clusters[c])) + " tweets")
-           
+            
     print("--> SSE : " + str(sse)+ '\n')
+
+if __name__ == '__main__':
+
+    temp = str(sys.argv[1])
+    
+    k = int(sys.argv[2])
+    if(temp != "ALL"):
+        print("\n----------Running  Health-Tweets/"+temp+"-------------\n")
+        run(temp,k)
+    if(temp == "ALL"):
+        # print("\n----------Running  Health-Tweets/bbchealth.txt-------------\n")
+        # run("Health-Tweets/bbchealth.txt",k)
+        # print("\n----------Running  Health-Tweets/cbchealth.txt-------------\n")
+        # run("Health-Tweets/cbchealth.txt",k)
+        # print("\n----------Running  Health-Tweets/cnnhealth.txt-------------\n")
+        # run("Health-Tweets/cnnhealth.txt",k)
+        # print("\n----------Running  Health-Tweets/everydayhealth.txt-------------\n")
+        # run("Health-Tweets/everydayhealth.txt",k)
+        print("\n----------Running  Health-Tweets/foxnewshealth.txt-------------\n")
+        run("Health-Tweets/foxnewshealth.txt",k)
+        print("\n----------Running  Health-Tweets/gdnhealthcare.txt-------------\n")
+        run("Health-Tweets/gdnhealthcare.txt",k)
+        print("\n----------Running  Health-Tweets/goodhealth.txt-------------\n")
+        run("Health-Tweets/goodhealth.txt",k)
+        print("\n----------Running  Health-Tweets/KaiserHealthNews.txt-------------\n")
+        run("Health-Tweets/KaiserHealthNews.txt",k)
+        print("\n----------Running  Health-Tweets/latimeshealth.txt-------------\n")
+        run("Health-Tweets/latimeshealth.txt",k)
+        print("\n----------Running  Health-Tweets/msnhealthnews.txt-------------\n")
+        run("Health-Tweets/msnhealthnews.txt",k)
+        print("\n----------Running  Health-Tweets/NBChealth.txt-------------\n")
+        run("Health-Tweets/NBChealth.txt",k)
+        print("\n----------Running  Health-Tweets/gdnhealthcare.txt-------------\n")
+        run("Health-Tweets/gdnhealthcare.txt",k)
+        print("\n----------Running  Health-Tweets/nytimeshealth.txt-------------\n")
+        run("Health-Tweets/nytimeshealth.txt",k)
+        print("\n----------Running  Health-Tweets/nprhealth.txt-------------\n")
+        run("Health-Tweets/nprhealth.txt",k)
+        print("\n----------Running  Health-Tweets/reuters_health.txt-------------\n")
+        run("Health-Tweets/reuters_health.txt",k)
+        print("\n----------Running  Health-Tweets/reuters_health.txt-------------\n")
+        run("Health-Tweets/reuters_health.txt",k)
+        print("\n----------Running  Health-Tweets/wsjhealth.txt-------------\n")
+        run("Health-Tweets/wsjhealth.txt",k)
+        
+        
+
+
+    
+
